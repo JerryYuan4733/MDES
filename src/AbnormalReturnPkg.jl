@@ -1,8 +1,23 @@
 module AbnormalReturnPkg
+using Reexport
+using Dates
+using InMemoryDatasets
+@reexport  using BusinessDays
+using IntervalSets: ClosedInterval, (..)
+using LinearAlgebra
+using Tables
+@reexport using StatsModels
 
-# Write your package code here.
-# export MarketData
 
-# include("timelineData.jl")
+
+export MarketCalendar
+export MarketData
+export group_and_reg
+
+include("marketCalendar.jl")
+
+include("timelineData.jl")
+
+include("fastRegression.jl")
 
 end

@@ -1,31 +1,92 @@
-abstract type CalendarData end
 
 
-struct DataVector <: CalendarData
-    data::Vector{Float64}
-    missing_bdays::SparseVector{Bool, Int}
-    dates::ClosedInterval{Date}
+struct MarketData
     calendar::MarketCalendar
-    function DataVector(data, missing_bdays, dates, calendar)
-        @assert length(data) == length(missing_bdays) == bdayscount(calendar, dates.left, dates.right) + 1 "Data does not match length of dates or missings"
-        new(data, missing_bdays, dates, calendar)
+    firmdata::Dataset
+    marketdata::NamedTuple
+end
+
+
+function MarketData(
+    ds_market,
+    ds_firms;
+    date_col_market=:date,
+    date_col_firms=:date,
+    id_col=:permno,
+    valuecols_market=nothing,
+    valuecols_firms=nothing
+    )
+    ## if the target columns are not specified
+    if valuecols_market === nothing
+        valuecols_market = Symbol.([n for n in Symbol.(names(ds_market)) if n ∉ [date_col_market]])
+    end
+    if valuecols_firms === nothing
+        valuecols_firms = Symbol.([n for n in Symbol.(names(ds_firms)) if n ∉ [date_col_firms, id_col]])
+    end
+    #@ select the columns we interested
+    IMD.select!(ds_market, vcat([date_col_market], valuecols_market))
+    # IMD.disallowmissing!(ds_market)
+    ## sorted by date column 
+    IMD.sort!(ds_market,date_col_market)
+    if date_col_market!=:date
+        IMD.rename!(ds_market,Dict(date_col_market => :date ))
+    end
+    market_data=NamedTuple(valuecols_market .=> Tables.columns(ds_market[!,valuecols_market]))
+
+    if !allunique(ds_market[!,date_col_market])
+        @error("There are duplicate date rows in the market data")
+    end
+
+    IMD.select!(ds_firms, vcat([id_col, date_col_firms], valuecols_firms))
+    # IMD.disallowmissing!(ds_firms)
+    IMD.sort!(ds_firms, [id_col, date_col_firms])
+    if date_col_firms!=:date
+        IMD.rename!(ds_firms,Dict(date_col_firms => :date ))
+    end
+    # if !allunique(IMD.modify(df_firms, (id_col,date_col_firms) => byrow((x,y)-> (string(x),string(y))))[!,end])
+    #     @error("There are duplicate id-date rows in the firm data")
+    # end
+  
+
+    IMD.leftjoin!(ds_firms, ds_market[!, [:date]], on = :date, obs_id = [false, true])
+    
+    idx=IMD.index(ds_market)[date_col_market]
+
+    idx2=IMD.index(ds_firms)[date_col_firms]
+    cal = MarketCalendar(IMD._columns(ds_market)[idx])
+
+    check_all_businessdays(disallowmissing(unique(IMD._columns(ds_firms)[idx2])), cal)
+    
+    MarketData(
+        cal,
+        ds_firms,
+        market_data
+    )
+end
+
+
+function check_all_businessdays(dates, cal)
+    bday_list = isbday(cal, dates)
+    if !all(bday_list)
+        bday_list_inv = (!).(bday_list)
+        if sum(bday_list_inv) <= 3
+            @error("Dates $(dates[bday_list_inv]) are not in the MARKET_DATA_CACHE")
+        else
+            d1_test = findfirst(bday_list_inv)
+            d2_test = findlast(bday_list_inv)
+            @error("Dates $(dates[d1_test]) ... $(dates[d2_test]) are not in the MARKET_DATA_CACHE")
+        end
     end
 end
 
 
-struct DataMatrix <: CalendarData
-    data::Matrix{Float64}
-    missing_bdays::SparseVector{Bool, Int}# corresponds to each row with a missing value
-    dates::ClosedInterval{Date}
-    calendar::MarketCalendar
-    function DataMatrix(data, missing_bdays, dates, calendar)
-        @assert size(data, 1) == length(missing_bdays) == bdayscount(calendar, dates.left, dates.right) + 1 "Data does not match length of dates or missings"
-        new(data, missing_bdays, dates, calendar)
-    end
-end
 
-struct MarketData{T, MNames, FNames, N1, N2}
-    calendar::MarketCalendar
-    marketdata::NamedTuple{MNames, NTuple{N1, DataVector}} # column names as symbols
-    firmdata::Dict{T, NamedTuple{FNames, NTuple{N2, DataVector}}} # data stored by firm id and then by column name as symbol
+function Base.show(io::IO, data::MarketData)
+    println(io, "Calendar: ")
+    println(io, data.calendar)
+    println(io, "Head of Firm Data: ")
+    println(io, first(data.firmdata,4))
+    println(io, "Head of Market Data: ")
+    println(io, first(data.marketdata,4))
+    
 end

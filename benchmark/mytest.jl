@@ -1,6 +1,5 @@
 using Dates, BenchmarkTools, InMemoryDatasets
-using Revise
-using AbnormalReturns
+
 using DLMReader
 using LinearAlgebra, Random
 using Unrolled
@@ -31,6 +30,8 @@ m = disallowmissing(ds_mkt[!, 2:5]|>Matrix)
 # 2597.323984146118
 # after sorted: Base.summarysize(ds_firm)/1024/1024
 # 4617.463748931885
+unsort!(ds_firm)
+
 @time IMD.sort!(ds_firm,[:firm_id,:date])
 # 6.751503 seconds (5.02 M allocations: 4.689 GiB, 8.78% gc time, 31.84% compilation time)
 @time IMD.sort!(ds_mkt,:date)
@@ -74,15 +75,18 @@ for each line of ds_events,  find the corresponding range in ds_firm,
 and do the regression
 """
 # function group_and_reg(id,the_start,the_end)
-function group_and_reg(ds_e,ds_f,re)
-    for n in 1:nrow(ds_e)
+function group_and_reg(ds_e,ds_f,re; threads = true )
+    IMD.@_threadsfor threads  for n in 1:nrow(ds_e)
 
         # i=searchsorted(IMD._columns(ds_f)[1],view(ds_e,n,:firm_id)[1])#39M
-        i=searchsorted(IMD._columns(ds_f)[1],ds_e[n,:firm_id]) 
+        i=searchsorted(IMD._columns(ds_f)[1],IMD._columns(ds_e)[1][n]) 
 
 
         e=searchsortedlast(view(IMD._columns(ds_f)[2],i), IMD._columns(ds_e)[6][n])
         s=searchsortedfirst(view(IMD._columns(ds_f)[2],i), IMD._columns(ds_e)[5][n])
+
+
+
         obs_id=view(IMD._columns(ds_f)[4],i[1]+s-1:i[1]+e-1)
 
         # obs_id=view(obs_ids,i[1]+s-1:i[1]+e-1)
@@ -90,6 +94,8 @@ function group_and_reg(ds_e,ds_f,re)
         ret=view(IMD._columns(ds_f)[3],i[1]+s-1:i[1]+e-1)
   
         re[n,:]=simple_reg(obs_id,ret)
+
+
         # e=searchsortedlast(view(IMD._columns(ds_f)[2],i), view(ds_e,n,:est_window_end)[1])
         # s=searchsortedfirst(view(IMD._columns(ds_f)[2],i), view(ds_e,n,:est_window_start)[1])
 
@@ -110,7 +116,7 @@ end;
 
 
 @time group_and_reg(ds_events,ds_firm,re_output)
-# 14.453152 seconds (22.91 M allocations: 915.196 MiB, 0.89% gc time, 0.30% compilation time)
+#  13.906801 seconds (22.84 M allocations: 910.980 MiB, 0.61% gc time)
 
 @time for i in 1:2
     group_and_reg(ds_events[i,:firm_id],ds_events[i,:est_window_start],ds_events[i,:est_window_end])
