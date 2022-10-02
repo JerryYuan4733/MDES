@@ -2,8 +2,8 @@
 
 struct MarketData
     calendar::MarketCalendar
-    firmdata::Dataset
-    marketdata::NamedTuple
+    firmdata
+    marketdata
 end
 
 
@@ -12,7 +12,7 @@ function MarketData(
     ds_firms;
     date_col_market=:date,
     date_col_firms=:date,
-    id_col=:permno,
+    id_col=:firm_id,
     valuecols_market=nothing,
     valuecols_firms=nothing
     )
@@ -23,6 +23,12 @@ function MarketData(
     if valuecols_firms === nothing
         valuecols_firms = Symbol.([n for n in Symbol.(names(ds_firms)) if n ∉ [date_col_firms, id_col]])
     end
+
+    if id_col!=:firm_id
+        IMD.rename!(ds_firms,Dict(id_col => :firm_id ))
+    end
+
+
     #@ select the columns we interested
     IMD.select!(ds_market, vcat([date_col_market], valuecols_market))
     # IMD.disallowmissing!(ds_market)
@@ -55,12 +61,13 @@ function MarketData(
     idx2=IMD.index(ds_firms)[date_col_firms]
     cal = MarketCalendar(IMD._columns(ds_market)[idx])
 
-    check_all_businessdays(disallowmissing(unique(IMD._columns(ds_firms)[idx2])), cal)
-    
+    check_all_businessdays(convert(Vector{Date},unique(IMD._columns(ds_firms)[idx2])), cal)
+
     MarketData(
         cal,
         ds_firms,
         market_data
+        # ds_market
     )
 end
 
@@ -87,6 +94,6 @@ function Base.show(io::IO, data::MarketData)
     println(io, "Head of Firm Data: ")
     println(io, first(data.firmdata,4))
     println(io, "Head of Market Data: ")
-    println(io, first(data.marketdata,4))
+    println(io, data.marketdata)
     
 end
