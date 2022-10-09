@@ -93,7 +93,7 @@ function Base.show(io::IO, data::MarketData)
     println(io, data.calendar)
     println(io, "Head of Firm Data: ")
     println(io, first(data.firmdata,4))
-    println(io, "Head of Market Data: ")
+    println(io, "Market Data: ")
     println(io, data.marketdata)
     
 end
