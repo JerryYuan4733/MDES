@@ -34,35 +34,46 @@ function MarketData(
     # IMD.disallowmissing!(ds_market)
     ## sorted by date column 
     IMD.sort!(ds_market,date_col_market)
+
+    ## make sure the date column name is ":date"
     if date_col_market!=:date
         IMD.rename!(ds_market,Dict(date_col_market => :date ))
     end
+    ## change the data into NamedTuple type
     market_data=NamedTuple(valuecols_market .=> Tables.columns(ds_market[!,valuecols_market]))
 
+    ## check if there are duplicate rows
     if !allunique(ds_market[!,date_col_market])
         @error("There are duplicate date rows in the market data")
     end
 
+    ## select the columns we interested from firms dataset
     IMD.select!(ds_firms, vcat([id_col, date_col_firms], valuecols_firms))
     # IMD.disallowmissing!(ds_firms)
     IMD.sort!(ds_firms, [id_col, date_col_firms])
+    ## make sure the date column name is ":date"
     if date_col_firms!=:date
         IMD.rename!(ds_firms,Dict(date_col_firms => :date ))
     end
+
     # if !allunique(IMD.modify(df_firms, (id_col,date_col_firms) => byrow((x,y)-> (string(x),string(y))))[!,end])
     #     @error("There are duplicate id-date rows in the firm data")
     # end
   
-
+    ## leftjoin based on :date column 
     IMD.leftjoin!(ds_firms, ds_market[!, [:date]], on = :date, obs_id = [false, true])
     
+    ## get the index of the :date column from market and firm dataset
     idx=IMD.index(ds_market)[date_col_market]
-
     idx2=IMD.index(ds_firms)[date_col_firms]
+
+    ## using date info from marke dataset to create a self-design calendar which have the bussiness days info
     cal = MarketCalendar(IMD._columns(ds_market)[idx])
 
+    ## using the calendar above to check if all dates in firms data are business days
     check_all_businessdays(convert(Vector{Date},unique(IMD._columns(ds_firms)[idx2])), cal)
 
+    ## return a structure which has business days info, market and firms data
     MarketData(
         cal,
         ds_firms,
