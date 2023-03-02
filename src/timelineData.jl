@@ -100,11 +100,12 @@ end
 
 
 function Base.show(io::IO, data::MarketData)
-    println(io, "Calendar: ")
-    println(io, data.calendar)
-    println(io, "Head of Firm Data: ")
-    println(io, first(data.firmdata,4))
-    println(io, "Market Data: ")
-    println(io, data.marketdata)
+    println(io, "*calendar:")
+    println(io, "   ",data.calendar)
+    println(io, "*Firm Data: ")
+    println(io, data.firmdata,4)
+    println(io, "*Market Data: ")
+    println(io,Dataset(collect(pairs(data.marketdata))[1:length(data.marketdata)]))
+    
     
 end

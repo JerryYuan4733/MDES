@@ -65,6 +65,7 @@ function binary_search(
     er,
     ar,
     pred;threads=true)
+    ## multi-threads for loop, for each firm in dataset
     IMD.@_threadsfor threads  for n in 1:length(event_firmid_col)
 
       
