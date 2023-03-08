@@ -1,4 +1,4 @@
-# MDES (Market Data Event Study)
+# MDEStudy (Market Data Event Study)
 ---
 ## Dataset Introduction
 We need three data sets as input, one for firm returns (firm_ret), one for market returns(mkt_ret), and one for event dates(event_dates).

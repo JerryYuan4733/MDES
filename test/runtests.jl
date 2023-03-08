@@ -1,6 +1,6 @@
 using Dates
 using DLMReader
-using MEDS
+using MDEStudy
 using Test
 using InMemoryDatasets
 

@@ -1,6 +1,6 @@
 using CSV, Dates, BenchmarkTools, InMemoryDatasets
 using Revise
-using AbnormalReturns
+using MDEStudy
 
 ##
 ds_firm = CSV.File(joinpath("data", "firm_ret.csv")) |> Dataset

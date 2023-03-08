@@ -1,6 +1,6 @@
 using Distributions, DataFrames, DataFramesMeta, Arrow, Statistics, Dates, CSV, ODBC, WRDSMerger
 using Revise
-using AbnormalReturns
+using MDEStudy
 
 ##
 conn = ODBC.Connection("wrds-pgdata-64")

@@ -3,7 +3,7 @@ using Pkg
 Pkg.develop("MDES")
 using Dates
 using DLMReader
-using MDES
+using MDEStudy
 using InMemoryDatasets
 
 ds_firm = filereader(joinpath("data", "firm_ret.csv"), types = Dict(2=>Date)); 
