@@ -1,9 +1,9 @@
 using Revise
 using Pkg
-Pkg.develop("AbnormalReturnPkg")
+Pkg.develop("MDES")
 using Dates
 using DLMReader
-using AbnormalReturnPkg
+using MDES
 using InMemoryDatasets
 
 ds_firm = filereader(joinpath("data", "firm_ret.csv"), types = Dict(2=>Date)); 
