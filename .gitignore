@@ -3,5 +3,5 @@
 *.jl.mem
 deps/deps.jl
 benchmark/data/
-Manifest.toml
+
 docs/.vscode/settings.json
