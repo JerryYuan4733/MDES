@@ -1,10 +1,10 @@
 using Revise
 using Pkg
-Pkg.develop("MDES")
+Pkg.develop("MDEStudy")
 using Dates
 using DLMReader
 using MDEStudy
-using InMemoryDatasets
+
 
 ds_firm = filereader(joinpath("data", "firm_ret.csv"), types = Dict(2=>Date)); 
 ds_mkt = filereader(joinpath("data", "mkt_ret.csv"), types = Dict(1=>Date));

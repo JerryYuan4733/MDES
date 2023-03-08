@@ -10,11 +10,11 @@ The third is the firm's event date. In event_dates, We have the firm id(firm_id)
 
 ## Generating the dataset
 The example dataset is simulated data. If you want to use the sample data for testing, follow these steps:
-Find create_data.jl in MDES/benchmark/ and run it, this process will take a while.
+Find create_data.jl in MDEStudy/benchmark/ and run it, this process will take a while.
 ```
 include("create_data.jl")
 ```
-Make sure that there is a folder named "data" in the MDES/benchmark/ directory where the dataset files will be placed. And the data is in millions, so make sure you have enough storage.
+Make sure that there is a folder named "data" in the MDEStudy/benchmark/ directory where the dataset files will be placed. And the data is in millions, so make sure you have enough storage.
 In total, three datasets are generated: ds_firm, ds_mkt, and ds_events.
 
 
