@@ -1,6 +1,6 @@
 using Dates
 using DLMReader
-using AbnormalReturnPkg
+using MEDS
 using Test
 using InMemoryDatasets
 
@@ -12,15 +12,15 @@ ds_mkt[!, :mkt] = ds_mkt.mktrf .+ ds_mkt.rf
 
 rename!(ds_firm,:permno=>:firm_id)
 
-@time data = MarketData(ds_mkt, ds_firm)
+@test data = MarketData(ds_mkt, ds_firm)
 
 
-d=Dataset([:firm_id=>[18428,18428],:event_date=>[Date(2005-07-25),Date(2005-07-25)],
-:event_window_start=>[Date(2005-07-11),Date(2005-07-11)],:event_window_end=>
-[Date(2005-08-08),Date(2005-08-08)],:est_window_start=>[Date(2019-04-01),Date(2019-04-01)],
-:est_window_end=>[Date(2019-10-01),Date(2019-10-01)]])
+# d=Dataset([:firm_id=>[18428,18429],:event_date=>[Date(2005-07-25),Date(2006-07-25)],
+# :event_window_start=>[Date(2005-07-11),Date(2005-07-11)],:event_window_end=>
+# [Date(2005-08-08),Date(2005-08-08)],:est_window_start=>[Date(2019-04-01),Date(2019-04-01)],
+# :est_window_end=>[Date(2019-10-01),Date(2019-10-01)]])
 
-@time coef,er,ar=group_and_reg(d, data, @formula(ret ~ mktrf + hml))
+# @time r=group_and_reg(d, data, @formula(ret ~ mktrf + hml))
 
 
 
