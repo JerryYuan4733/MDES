@@ -5,7 +5,7 @@ We need three data sets as input, one for firm returns (firm_ret), one for marke
 
 First is the company return, in firm_ret, we have firm id(firm_id), firm return date(date), return (ret).
 The second is market return. In mkt_ret, there are market return value(mkt), market return date(date), and some optional factors, such as smb,hml,umb, etc.
-The third is the firm's event date. In event_dates, We have the firm id(firm_id), the date the event started (event_window_start), the date the event ended (event_window_end), the start date without the event (est_window_start) and the end date without the event (est_window_start).
+The third is the firm's event date. In event_dates, we have the firm id(firm_id), the date the event started (event_window_start), the date the event ended (event_window_end), the start date without the event (est_window_start) and the end date without the event (est_window_start).
 
 
 ## Generating the dataset
@@ -35,7 +35,7 @@ ds_events=filereader(joinpath("data","event_dates.csv"),types = Dict(2:6 .=>Date
 ```
 data = MarketData(ds_mkt, ds_firm; id_col=:firm_id, valuecols_firms=[:ret])
 ```
-leftJoin ds_firm with ds_mkt by "date" column. In this process, we will take the date in ds_mkt as businessday to check whether the date in ds_firm is businessday, and if there is any discrepancy, we will throw an error.
+leftjoin ds_firm with ds_mkt by "date" column. In this process, we will take the date in ds_mkt as businessday to check whether the date in ds_firm is businessday, and if there is any discrepancy, we will throw an error.
 *MarketData* will return a MarketData struct.
 Note: All datasets will be sorted by date inside the MarketData function.
 
