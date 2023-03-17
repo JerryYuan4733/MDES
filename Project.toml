@@ -30,7 +30,7 @@ NamedTuples = "5.0.0"
 Reexport = "1.2"
 ShiftedArrays = "1.0.0"
 StatsBase = "0.30"
-StatsModels = "0.6"
+StatsModels = "0.6, 0.7"
 Tables = "1.7"
 julia = "1"
 
