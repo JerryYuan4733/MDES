@@ -1,4 +1,38 @@
+"""
+    struct AbResults
+        formula::FormulaTerm
+        coef::Matrix{Float64}
+        expected::Vector{Float64}
+        actual::Vector{Float64}
+        abr::Vector{Float64}
+        xnames
+        yname
+    end
 
+# Arguments
+- `formula`:A StatsModels.jl formula, saved in the resulting struct
+- `coef`: A matrix which stores the coefficients of final model
+- `expected`: A vector which stores the expected return
+- `actual`:A vector which stores the actual return
+- `abr`: A vector which stores the abnormal return (actual return - expected return)
+- `xnames`: the factor names of formular, the names are from column names of market data 
+- `yname`: the response names of formular, the name is from column name of firm data
+
+# Example
+```@setup general
+using DLMReader
+using MDEStudy
+ds_firm = filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data", "firm_ret.csv"), types = Dict(2=>Date)); 
+ds_mkt = filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data", "mkt_ret.csv"), types = Dict(1=>Date));
+ds_events=filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data","event_dates.csv"),types = Dict(2:6 .=>Date)) |> unique;
+mkt_data = MarketData(
+ds_mkt,
+ds_firm
+)
+reg_result=group_and_reg(ds_events,data, @formula(ret ~ mkt + smb + hml + umd))
+typeof(reg_result)
+```
+"""
 struct AbResults
     formula::FormulaTerm
     coef::Matrix{Float64}
@@ -85,8 +119,41 @@ end
 
 
 
+"""
+    function group_and_reg(
+        ds_e::InMemoryDatasets.Dataset,
+        data::MarketData,
+        f::FormulaTerm
+    )
 
-function group_and_reg(ds_e,data::MarketData,f::FormulaTerm)
+Calculates a linear regression for the supplied data based on the formula (formula from StatsModels.jl), 
+therefore, the user needs to know the factor information in the market data.
+
+`group_and_reg` is an intentionally simplistic linear regression.For each firm event, it looks up the 
+corresponding factors in the firm and market data, and does a regression to calculate the coefficients 
+of the formular. It also attempts to produce a minimum number of allocations if views of vectors are 
+passed.
+
+# Arguments
+- `ds_e`:An InMemoryDatasets.Dataset that stores events data
+- `data`: A MarketData structure which stores sorted firm data and market data
+- `f`: A StatsModels.jl formula, provided by user
+
+# Example
+```@example general
+using DLMReader
+using MDEStudy
+ds_firm = filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data", "firm_ret.csv"), types = Dict(2=>Date)); 
+ds_mkt = filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data", "mkt_ret.csv"), types = Dict(1=>Date));
+ds_events=filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data","event_dates.csv"),types = Dict(2:6 .=>Date)) |> unique;
+mkt_data = MarketData(
+ds_mkt,
+ds_firm
+)
+reg_result=group_and_reg(ds_events,data, @formula(ret ~ mkt + smb + hml + umd))
+```
+"""
+function group_and_reg(ds_e::InMemoryDatasets.Dataset,data::MarketData,f::FormulaTerm)
 
     if !StatsModels.omitsintercept(f) & !StatsModels.hasintercept(f)
         f = FormulaTerm(f.lhs, InterceptTerm{true}() + f.rhs)

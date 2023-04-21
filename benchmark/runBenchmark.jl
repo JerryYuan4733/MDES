@@ -6,9 +6,9 @@ using DLMReader
 using MDEStudy
 
 
-ds_firm = filereader(joinpath("data", "firm_ret.csv"), types = Dict(2=>Date)); 
-ds_mkt = filereader(joinpath("data", "mkt_ret.csv"), types = Dict(1=>Date));
-ds_events=filereader(joinpath("data","event_dates.csv"),types = Dict(2:6 .=>Date)) |> unique;
+ds_firm = filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data", "firm_ret.csv"), types = Dict(2=>Date)); 
+ds_mkt = filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data", "mkt_ret.csv"), types = Dict(1=>Date));
+ds_events=filereader(joinpath(pathof(MDEStudy),"..","..","benchmark","data","event_dates.csv"),types = Dict(2:6 .=>Date)) |> unique;
 
 
 @time data = MarketData(ds_mkt, ds_firm; id_col=:firm_id, valuecols_firms=[:ret])

@@ -1,4 +1,11 @@
-
+"""
+    MarketCalendar
+    * `bdays`: a vector of business days
+    * `dtmin`: minimum date allowed to check for bdays in bdays set. Defaults to `min(bdays...)`.
+    * `dtmax`: maximum date allowed to check for bdays in bdays set. Defaults to `max(bdays...)`.
+    * `isbday_array`: a boolean vector mapping a period days from market data.
+    * `bdayscounter_array`: a cumulative sum of business days.
+"""
 mutable struct MarketCalendar <: BusinessDays.HolidayCalendar
     bdays::Vector{Date}
     dtmin::Date
@@ -10,7 +17,13 @@ end
 # Base.:(==)(g1::MarketCalendar, g2::MarketCalendar) = g1.bdays == g2.bdays && g1.dtmin == g2.dtmin && g1.dtmax == g2.dtmax
 # Base.hash(g::MarketCalendar) = hash(g.bdays) + hash(g.dtmin) + hash(g.dtmax)
 
-
+"""
+    MarketCalendar(bdays, [dtmin], [dtmax], [_initcache_])
+* `bdays`: a vector of dates
+* `dtmin`: minimum date allowed to check for bdays in bdays set. Defaults to `min(bdays...)`.
+* `dtmax`: maximum date allowed to check for bdays in bdays set. Defaults to `max(bdays...)`.
+* `_initcache_`: initializes the cache for this calendar. Defaults to `true`.
+"""
 function MarketCalendar(bdays, dtmin::Date=min(bdays...), dtmax::Date=max(bdays...))
     bdays = sort(bdays)
     isbday_array = zeros(Bool, Dates.value(dtmax - dtmin)+1)
