@@ -1,7 +1,7 @@
 name = "MDEStudy"
 uuid = "45ce4efb-129e-4f36-8fe9-5e4f23129ff4"
 authors = ["JerryYuan4733 <1023171134@qq.com> and contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 BusinessDays = "4f18b42c-503e-5345-9536-bb0f25fc7038"
