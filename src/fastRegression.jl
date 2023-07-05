@@ -41,10 +41,12 @@ struct AbResults
     abr::Vector{Float64}
     xnames
     yname
+    evar
+    the_date
 end
 
 
-function simple_reg(resp,pred
+function simple_reg(resp,pred,pred3,resp3
     )
     
     coef=cholesky!(Symmetric(pred' * pred)) \ (pred' * resp)
@@ -52,7 +54,15 @@ function simple_reg(resp,pred
     ar=bh_return(resp)
     # er=1
     # ar=1  # 5.019152 seconds (4.98 M allocations: 1.287 GiB, 3.75% gc time)
-    return coef,er,ar
+
+    t=fast_pred_event(pred3,coef)
+    event_er=resp3-t
+    # print("######:",pred3,"\n")
+    # print(resp3,"\t",pred3,"\t",coef,"\t",t,"\t",event_er,"###","\n")
+    # print(length(coef),length(pred3))
+    # print(event_er)
+
+    return coef,er,ar,event_er
 end;
 
 
@@ -81,6 +91,23 @@ function fast_pred(pred, coef, i)
     out
 end
 
+function fast_pred_event(pred1, coef1)
+    out1 = 0.0
+    @simd for z in 1:length(coef1)
+        @inbounds out1 += pred1[z] * coef1[z]
+    end
+    out1
+end
+
+function cumulative_return(pred::AbstractMatrix, coef)
+    #@assert size(pred, 2) == length(coef) "Got Matrix of size $(size(pred)) and coefficients of $coef $pred"
+    out = 0.0
+    @simd for i in 1:size(pred, 1)
+        out += fast_pred(pred, coef, i)
+    end
+    out
+end
+car(resp, pred, coef) = sum(resp) - cumulative_return(pred, coef)
 
 
 """ 
@@ -89,6 +116,9 @@ and do the regression
 """
 function binary_search(
     event_firmid_col,
+    event,
+    event_start_col,
+    event_end_col,
     start_col,
     end_col,
     firm_col,
@@ -98,7 +128,8 @@ function binary_search(
     p_coef,
     er,
     ar,
-    pred;threads=true)
+    pred,
+    evar;threads=true)
     ## multi-threads for loop, for each firm in dataset
     IMD.@_threadsfor threads  for n in 1:length(event_firmid_col)
 
@@ -112,7 +143,36 @@ function binary_search(
         obs_id=view(obsid_col,i[1]+s-1:i[1]+e-1)
         resp=view(resp_col,i[1]+s-1:i[1]+e-1)
         predictor=view(pred,obs_id,:) ## totally 1.85 seconds
-        p_coef[n,:],er[n],ar[n]=simple_reg(resp,predictor)## totally 5.4 seconds
+
+        ## observations of event_window
+        s2=searchsortedfirst(view(date_col,i), event_start_col[n])
+        e2=searchsortedlast(view(date_col,i), event_end_col[n])
+        obs_id2=view(obsid_col,i[1]+s2-1:i[1]+e2-1)
+        resp2=view(resp_col,i[1]+s2-1:i[1]+e2-1)
+        predictor2=view(pred,obs_id2,:)
+  
+        ## observation of event_date
+        event_idx=searchsortedfirst(view(date_col,i),event[n])
+        # print(searchsorted(view(date_col,i),event[n]),"\t",event[n],"\n")
+        resp3=view(resp_col,event_idx)
+
+        predictor3=view(pred,event_idx,:)
+        # print(predictor3)
+        # print("\n")
+
+        p_coef[n,:],er[n],ar[n],evar[n]=simple_reg(resp,predictor,predictor3,resp3[1])## totally 5.4 seconds
+
+        # car=car(resp, pred, coef)
+        # c=cumulative_return(predictor2, p_coef[n,:])
+
+        cuar=car(resp2,predictor2,p_coef[n,:])
+        # print(cuar,"\n")
+        # print(resp2,"\t",predictor2,"\t",p_coef[n,:],"\t",cuar,"\n")
+        # print(c,"\t",length(predictor2),"\t",length(resp2),"\n")
+        # print(s2,"\t",e2,"\t",size(predictor2),"\t",obs_id2,"\n")
+        # print(cuar,"\n")
+
+
     end
 
 end
@@ -168,10 +228,12 @@ function group_and_reg(ds_e::InMemoryDatasets.Dataset,data::MarketData,f::Formul
     yname, xnames = coefnames(sch)
     #coefficients
     p_coef=zeros(Float64, nrow(ds_e), size(pred,2))
-    #expected return
+    #buy and hold expected return
     er=zeros(Float64, nrow(ds_e))
-    #actual return
+    #buy and hold actual return
     ar=zeros(Float64, nrow(ds_e)) ## these pre-allocations take extra 0.2 seconds
+
+
 
     id_idx=IMD.index(data.firmdata)[:firm_id]
     date_idx=IMD.index(data.firmdata)[:date]
@@ -179,6 +241,10 @@ function group_and_reg(ds_e::InMemoryDatasets.Dataset,data::MarketData,f::Formul
     event_firmid_idx=IMD.index(ds_e)[:firm_id]
     start_idx=IMD.index(ds_e)[:est_window_start]
     end_idx=IMD.index(ds_e)[:est_window_end]
+    event_start_idx=IMD.index(ds_e)[:event_window_start]
+    event_end_idx=IMD.index(ds_e)[:event_window_end]
+
+    event_idx=IMD.index(ds_e)[:date]
 
     firm_col=IMD._columns(data.firmdata)[id_idx]
     date_col=IMD._columns(data.firmdata)[date_idx]
@@ -187,8 +253,22 @@ function group_and_reg(ds_e::InMemoryDatasets.Dataset,data::MarketData,f::Formul
     event_firmid_col=IMD._columns(ds_e)[event_firmid_idx]
     start_col=IMD._columns(ds_e)[start_idx]
     end_col=IMD._columns(ds_e)[end_idx]
+    event_start_col=IMD._columns(ds_e)[event_start_idx]
+    event_end_col=IMD._columns(ds_e)[event_end_idx]
 
-    binary_search(event_firmid_col,start_col,end_col,firm_col,date_col,obsid_col,resp_col,p_coef,er,ar,pred)
+    event=IMD._columns(ds_e)[event_idx]
+
+    # event abnomral return
+    # ls=IMD._columns(ds_e)[event_start_idx][1]
+    # le=IMD._columns(ds_e)[event_end_idx][1]
+    # evar=zeros(Float64,nrow(ds_e),Dates.value(le-ls))
+    evar=zeros(Float64, nrow(ds_e))
+
+    # print(BusinessDays.isbday(data.calendar,"2023-03-23"),"\n")
+    # print(BusinessDays.bdayscount(data.calendar,Date("2003-02-22"),Date("2003-03-14")))
+    
+
+    binary_search(event_firmid_col,event,event_start_col,event_end_col,start_col,end_col,firm_col,date_col,obsid_col,resp_col,p_coef,er,ar,pred,evar)
     r=AbResults(
         f,
         p_coef,
@@ -196,7 +276,9 @@ function group_and_reg(ds_e::InMemoryDatasets.Dataset,data::MarketData,f::Formul
         ar,
         ar-er,
         xnames,
-        yname
+        yname,
+        evar,
+        event
     )
     return r
 end;
@@ -205,9 +287,9 @@ end;
 
 function Base.show(io::IO, r::AbResults)
     println(io, " the formular is:  $(r.formula)")
-    cnames=["Abr", "Actual", "Expected" ]
+    cnames=["Date","Abr","bhAbr", "Actual", "bhExpected" ]
     cnames=[r.xnames;cnames]
-    values=hcat(r.coef,r.abr,r.actual,r.expected)
+    values=hcat(r.coef,r.the_date,r.evar,r.abr,r.actual,r.expected)
     d=Dataset(values,:auto)
     rename!(d,cnames)
     print(io,d)
